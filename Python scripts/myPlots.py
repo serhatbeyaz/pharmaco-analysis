@@ -95,3 +95,51 @@ class Plotting:
 
         plt.show()
         
+    
+
+        
+
+    def barplot_corr_table(results):
+    
+        results_melt = results.melt(id_vars=['drug', 'p-value'], value_vars=['pub_corr', 'recomp_corr'], var_name='type', value_name='correlation')
+
+        # Define a color palette with as many distinct colors as there are drugs
+        n = len(results['drug'].unique())
+        colors = sns.color_palette('hsv', n)
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+        
+        width = 0.35  # Width of the bars
+        ind = np.arange(n)  # Location of the bars
+
+        for i, drug in enumerate(results['drug'].unique()):
+            data_pub = results_melt[(results_melt['drug'] == drug) & (results_melt['type'] == 'pub_corr')]
+            data_recomp = results_melt[(results_melt['drug'] == drug) & (results_melt['type'] == 'recomp_corr')]
+            
+            ax.bar(ind[i] - width/2, data_pub['correlation'], width, color=colors[i], label='Published' if i == 0 else "")
+            ax.bar(ind[i] + width/2, data_recomp['correlation'], width, hatch='///', fill=True, color=colors[i], label='Recomputed' if i == 0 else "", alpha=0.5, edgecolor='black')
+
+        
+        # Annotate bars with p-value
+        for i, p in enumerate(results['p-value']):
+            if p < 0.05:
+                plt.text(i, results.loc[i, 'pub_corr'] if results.loc[i, 'pub_corr'] > results.loc[i, 'recomp_corr'] else results.loc[i, 'recomp_corr'], '*', ha='center')
+
+
+        handles, labels = ax.get_legend_handles_labels()
+        ax.set_title('Correlation Coefficients by Drug')
+        ax.set_ylabel('Correlation Coefficient')
+        ax.set_xlabel('Drug')
+        ax.set_ylim(0, 1)  # Scale y-axis between 0 and 1
+        ax.set_xticks(ind)
+        ax.set_xticklabels(results['drug'].unique(), rotation=90)
+        by_label = dict(zip(labels, handles))
+        ax.legend(by_label.values(), by_label.keys())
+        
+
+        fig.tight_layout()
+        plt.show()
+
+
+
+
