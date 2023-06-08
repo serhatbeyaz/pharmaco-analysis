@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 from scipy import integrate, stats
+from scipy.integrate import quad
 
 class Tools:
     
@@ -97,7 +98,7 @@ class Tools:
     
     @staticmethod
     def logistic_4PL(x, log_ec50, slope, front, back):
-        model = (front - back) / (1 + 10 ** (slope * (x - log_ec50))) + back
+        model = (front - back) / (1 + 10 ** (slope * (np.array(x) - log_ec50))) + back
         return model
 
     @staticmethod
@@ -168,6 +169,42 @@ class Tools:
 
         return 1 - normalized_auc
     
+    def fetch_curve_params(pSet, drug, cell_line):
+        
+        curve = pSet.get_curve_data(drug)
+        curve = curve[curve["Name"] == cell_line.upper()]
+
+        
+        if len(curve) != 1:
+            raise ValueError(f"Expected exactly 1 row for drug {drug} and cell line {cell_line}, got {len(curve)}")
+
+        params = curve['Log EC50'].item(), curve['Curve Slope'].item(), curve['Curve Front'].item(), curve['Curve Back'].item()
+
+        return params
+
+    def compute_ABC(pSet1, pSet2, drug, cell_line, common_conc):
+        common_conc = common_conc[(common_conc["cell_line_"] == cell_line.lower()) & (common_conc["drug_"] == drug)]
+        common_min, common_max = common_conc['common_min_dose'].item() * 1e-6, common_conc['common_max_dose'].item() * 1e-6
+
+        
+        curve1_params = Tools.fetch_curve_params(pSet1, drug, cell_line)
+        curve2_params = Tools.fetch_curve_params(pSet2, drug, cell_line)
+
+        # Define functions for the two curves
+        f1 = lambda x: Tools.logistic_4PL(x, *curve1_params)
+        f2 = lambda x: Tools.logistic_4PL(x, *curve2_params)
+        
+        # Calculate absolute difference between the curves and integrate
+        abs_diff_func = lambda x: np.abs(f1(x) - f2(x))
+        area, error = quad(abs_diff_func, np.log10(common_min), np.log10(common_max))
+        
+        # Calculate the length of the concentration range
+        concentration_range = np.log10(common_max) - np.log10(common_min)
+        
+        # Normalize the area
+        normalized_area = area / concentration_range
+        
+        return normalized_area
 
 
 

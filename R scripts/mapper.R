@@ -78,7 +78,8 @@ map_cell_line_names <- function(dataset) {
   
   cat(after_ncell, "out of ", before_ncell, "cells are mapped!")
   
-  return(initial_df)
+  
+  return(list(initial_df, conversion_vector))
 
   
 
