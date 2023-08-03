@@ -24,6 +24,7 @@ def fetch_data(pSet):
 
 class Correlation:
 
+    
 
     @staticmethod
     def calculate_correlation(df1, df2, drug, pset1_name, pset2_name, method, type_):
@@ -131,21 +132,23 @@ class Correlation:
         # Prepare results dataframe
         results = pd.DataFrame(columns=['drug', 'pub_corr', 'recomp_corr', 'pub_size', 'recomp_size', 'p-value'])
         
-        for drug in df_pub1['drug'].unique():
-            correlation_coef_pub, size_pub = Correlation.calculate_correlation(df_pub1, df_pub2, drug, pSet1.name, pSet2.name, method, 'Published')
-            correlation_coef_recomp, size_recomp = Correlation.calculate_correlation(df_recomp1, df_recomp2, drug, pSet1.name, pSet2.name, method, 'Recomputed')
-            
-            p_value = Correlation.calculate_p_value(size_pub, size_recomp, correlation_coef_pub, correlation_coef_recomp)
-            
-            new_row = pd.DataFrame({'drug': [drug], 
-                        'pub_corr': [correlation_coef_pub[0]], 
-                        'recomp_corr': [correlation_coef_recomp[0]], 
-                        'pub_size': [size_pub], 
-                        'recomp_size': [size_recomp], 
-                        'p-value': [p_value]})
+        for drug in df_recomp2['drug'].unique():
+            try:
+                correlation_coef_pub, size_pub = Correlation.calculate_correlation(df_pub1, df_pub2, drug, pSet1.name, pSet2.name, method, 'Published')
+                correlation_coef_recomp, size_recomp = Correlation.calculate_correlation(df_recomp1, df_recomp2, drug, pSet1.name, pSet2.name, method, 'Recomputed')
+                p_value = Correlation.calculate_p_value(size_pub, size_recomp, correlation_coef_pub, correlation_coef_recomp)
+                
+                new_row = pd.DataFrame({'drug': [drug], 
+                            'pub_corr': [correlation_coef_pub[0]], 
+                            'recomp_corr': [correlation_coef_recomp[0]], 
+                            'pub_size': [size_pub], 
+                            'recomp_size': [size_recomp], 
+                            'p-value': [p_value]})
 
-            # Append to results
-            results = pd.concat([results, new_row], ignore_index=True)
+                # Append to results
+                results = pd.concat([results, new_row], ignore_index=True)
+            except:
+                "Something wrong"
         
         return results
 

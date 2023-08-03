@@ -296,8 +296,9 @@ transform_for_curvecurator = function(df){
   
 }
 
+## GDSC1 
 
-gdsc1_df = read.csv("GDSC1_public_raw_data_24Jul22.csv/GDSC1_public_raw_data_24Jul22.csv")
+gdsc1_df = read.csv("Raw_data/GDSC1_public_raw_data_24Jul22.csv/GDSC1_public_raw_data_24Jul22.csv")
 
 drug_names = read.csv("meta/screened_compounds_rel_8.4.csv")
 
@@ -305,10 +306,25 @@ gdsc1_norm = main_normalizer(gdsc1_df)
 
 formatted_gdsc1 = transform_for_curvecurator(gdsc1_norm)
 
-write.table(formatted, file = "gdsc2_normalized.tsv", sep = "\t", row.names = FALSE)
+## GDSC2 
 
-dose_range = formatted %>%
-  group_by(cell_line, drug) %>% mutate(dose_range = paste0(min(dose),"-", max(dose))) %>%
-  ungroup() %>% as.data.frame()
 
-dose_range
+gdsc2_df = read.csv("Raw_data/GDSC2_public_raw_data_24Jul22.csv/GDSC2_public_raw_data_24Jul22.csv")
+
+drug_names = read.csv("meta/screened_compounds_rel_8.4.csv")
+
+gdsc2_norm = main_normalizer(gdsc2_df)
+
+formatted_gdsc2 = transform_for_curvecurator(gdsc2_norm)
+
+######
+
+mapped = map_cell_line_names(formatted_gdsc1)
+
+mapped_gdsc1 = mapped[[1]]
+
+mapped_gdsc1$drug = sanitize_name(mapped_gdsc1$drug)
+
+write.table(mapped_gdsc1, file = "processed_data/gdsc1_normalized_mapped.tsv", sep = "\t", row.names = FALSE)
+
+

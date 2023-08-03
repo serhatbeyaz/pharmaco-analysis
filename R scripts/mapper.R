@@ -11,10 +11,13 @@ to_char_vector <- function(value) {
 sanitize_name <- function(name) {
   # Convert to lower case
   name <- tolower(name)
+  
   # Remove or replace special characters
-  name <- gsub(" ", "", name)  # removes spaces
-  name <- gsub("-", "", name)  # removes hyphens
-  name <- gsub("_", "", name)  # removes underscores
+  name <- gsub("[ _\\(\\)\\-]", "", name)  # removes spaces, hyphens, and underscores
+    
+
+  
+  
   return(name)
 }
 

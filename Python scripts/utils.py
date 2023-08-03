@@ -161,10 +161,8 @@ class Tools:
         # Calculate AUC using the trapezoidal rule
         auc = integrate.trapz(response_values, concentration_points)
 
-        model_front = response_values[0]
-
         # Normalize AUC to the range of 0 to 1
-        max_auc = model_front * (max_concentration - min_concentration)
+        max_auc = front * (max_concentration - min_concentration)
         normalized_auc = auc / max_auc
 
         return 1 - normalized_auc

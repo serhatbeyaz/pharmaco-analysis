@@ -7,6 +7,7 @@ from scipy import stats
 import seaborn as sns
 import calculations
 import utils
+import itertools
 
 
 class Plotting:
@@ -109,7 +110,7 @@ class Plotting:
 
         results_melt = results.melt(id_vars=['drug', 'p-value'], value_vars=['pub_corr', 'recomp_corr'], var_name='type', value_name='correlation')
 
-        fig, ax = plt.subplots(figsize=(8, 5))
+        fig, ax = plt.subplots(figsize=(16, 10))
         
         width = 0.35  # Width of the bars
         ind = np.arange(len(results['drug'].unique()))  # Location of the bars
@@ -220,10 +221,10 @@ class Plotting:
         plt.bar(df_drug['cell_line'], df_drug['AUC'], color='skyblue')
         plt.xticks(rotation=90, fontsize=8)  # Decrease the font size and rotate the labels
         plt.title(f"Waterfall plot for {drug_name}")
+        plt.ylim(0,1)
         plt.ylabel("AUC")
         plt.tight_layout()  # Adjust the layout so everything fits
         plt.show()
-
 
 
 
@@ -236,11 +237,27 @@ class Plotting:
         curve2 = curve2[curve2["Name"] == cell_line]
 
 
-        curve1_doses = pSet1.overlapping_data[(pSet1.overlapping_data['drug'] == drug) & (pSet1.overlapping_data['cell_line'] == cell_line)]['dose'].iloc[1:]
-        curve1_response = pSet1.overlapping_data[(pSet1.overlapping_data['drug'] == drug) & (pSet1.overlapping_data['cell_line'] == cell_line)]['response'].iloc[1:]
+        curve1_doses = pSet1.overlapping_data[(pSet1.overlapping_data['drug'] == drug) & (pSet1.overlapping_data['cell_line'] == cell_line)]['dose']
 
-        curve2_doses = pSet2.overlapping_data[(pSet2.overlapping_data['drug'] == drug) & (pSet2.overlapping_data['cell_line'] == cell_line)]['dose'].iloc[1:]
-        curve2_response = pSet2.overlapping_data[(pSet2.overlapping_data['drug'] == drug) & (pSet2.overlapping_data['cell_line'] == cell_line)]['response'].iloc[1:]
+        org_len = len(curve1_doses)
+
+        curve1_doses = np.array(list(itertools.dropwhile(lambda x: x == 0, curve1_doses)))
+
+        removed_elements = org_len - len(curve1_doses)
+
+        curve1_response = pSet1.overlapping_data[(pSet1.overlapping_data['drug'] == drug) & (pSet1.overlapping_data['cell_line'] == cell_line)]['response'].iloc[removed_elements:]
+
+
+        curve2_doses = pSet2.overlapping_data[(pSet2.overlapping_data['drug'] == drug) & (pSet2.overlapping_data['cell_line'] == cell_line)]['dose']
+
+        org_len2 = len(curve2_doses)    
+
+        curve2_doses = np.array(list(itertools.dropwhile(lambda x: x == 0, curve2_doses)))
+
+        removed_elements2 = org_len2 - len(curve2_doses)
+
+        curve2_response = pSet2.overlapping_data[(pSet2.overlapping_data['drug'] == drug) & (pSet2.overlapping_data['cell_line'] == cell_line)]['response'].iloc[removed_elements2:]
+        
 
         max_conc1 = np.log10(curve1_doses.max() * 1e-6)
         concentration_points1 = np.linspace(np.log10(curve1_doses.min() * 2e-7), max_conc1, 400)
@@ -329,3 +346,71 @@ class Plotting:
         ax.axvline(x = common_max, color = 'r', label = 'common_max', linestyle='--')
         ax.legend()
         ax.grid(True)
+
+
+    
+    @staticmethod
+    def correlation_plot_whole_pSet(pSet1,  pSet2, method = 'recomputed', drugs_to_exclude = None):  
+        """
+        Compare dataframes to evaluate response correlations between two pharmacological datasets.
+
+        This method generates a scatterplot comparing responses in cell lines between two PharmacoSet objects.
+        The method also computes and displays Spearman and Pearson correlation coefficients on the plot.
+
+        Parameters
+        ----------
+        pSet1 : PharmacoSet
+            First pharmacological dataset.
+        pSet2 : PharmacoSet
+            Second pharmacological dataset.
+        method : str, optional
+            Specifies the method for comparison. It can be either 'recomputed' (default) or 'published'.
+        drugs_to_exclude : list, optional
+            List of drug names to exclude from comparison.
+
+        Returns
+        -------
+        None. Displays a scatterplot comparing the two datasets as well as Spearman and Pearson correlation coefficients.
+        """
+
+        df1_name = pSet1.name.upper()
+        df2_name = pSet2.name.upper()
+
+        if method == 'published':
+            df1 = pSet1.get_pub_AUC_values()
+            df2 = pSet2.get_pub_AUC_values()
+        else:
+            df1 = pSet1.recomp_Aucs
+            df2 = pSet2.recomp_Aucs
+                
+        df1 = df1.set_index('drug').stack().reset_index().rename(columns={'level_1': 'cell_line', 0: f'Recomputed_{df1_name}'})
+        df2 = df2.set_index('drug').stack().reset_index().rename(columns={'level_1': 'cell_line', 0: f'Recomputed_{df2_name}'})
+
+        if drugs_to_exclude is not None:
+            df1 = df1[~df1['drug'].isin(drugs_to_exclude)]
+            df2 = df2[~df2['drug'].isin(drugs_to_exclude)]
+
+        merged_df = pd.merge(df1, df2, on=['drug', 'cell_line'])
+
+        spearsman_correlation = stats.spearmanr(merged_df[f'Recomputed_{df1_name}'], merged_df[f'Recomputed_{df2_name}'])
+        pearson_correlation = stats.pearsonr(merged_df[f'Recomputed_{df1_name}'], merged_df[f'Recomputed_{df2_name}'])
+
+        fig, ax = plt.subplots(figsize=(10,8))
+
+        sns.scatterplot(data=merged_df, x=f'Recomputed_{df1_name}', y=f'Recomputed_{df2_name}', ax=ax)
+
+        ax.axline((0, 0), slope=1, color='r', linestyle='--')  # x=y line
+        ax.axhline(0.2, color='b', linestyle='--')  # horizontal line at y=0.2
+        ax.axvline(0.2, color='g', linestyle='--')  # vertical line at x=0.2
+
+        ax.set_xlim([0, 1]) # set the x axis limit
+        ax.set_ylim([0, 1]) # set the y axis limit
+
+        plt.xlabel(f'{method}_{df1_name.upper()}')
+        plt.ylabel(f'{method}_{df2_name.upper()}')
+
+        plt.title(f'Overall Correlation of response in cell lines, {df1_name} vs. {df2_name} ')
+        plt.text(0.1, 0.9, f'Spearman correlation: {spearsman_correlation[0]:.2f}', transform=ax.transAxes)
+        plt.text(0.1, 0.85, f'Pearson correlation: {pearson_correlation[0]:.2f}', transform=ax.transAxes)
+
+        plt.show()

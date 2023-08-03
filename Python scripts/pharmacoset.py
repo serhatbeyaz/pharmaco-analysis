@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import numpy as np
 from utils import DrugAnalysis
+import re
 
 
 class PharmacoSet:
@@ -38,10 +39,21 @@ class PharmacoSet:
         self.filepath = filepath
         self.data = pd.read_csv(filepath, sep= "\t")  # assuming a TSV file
         self.data.dropna(subset=['cell_line'], inplace=True)
+        self.data['drug'] = self.data['drug'].apply(self.clean_drug_name)
         self.data['dataset'] = name
         self.overlapping_data = None
         self.recomp_Aucs = None
+        self.common_pairs = None
+        self.pub_Aucs = None 
         
+
+    def clean_drug_name(self, name):
+        name = name.lower()
+        # Remove or replace special characters
+        name = re.sub('[ _\\(\\)\\-]', '', name) # removes spaces, hyphens, and underscores
+        return name
+
+
     def get_curve_data(self, drug: str) -> pd.DataFrame:
         """
         Loads the curve data outputed by CurveCurator for a specific drug.
@@ -77,6 +89,20 @@ class PharmacoSet:
         """
         path_to_file = os.path.join("..", "Auc_values_published", f"AUC_values_{self.name}_published.csv")
         auc_values = pd.read_csv(path_to_file)
+
+        # Filter based on overlapping obs on recompututed
+        cells = self.overlapping_data['cell_line'].unique()
+        drugs = self.overlapping_data['drug'].unique()
+
+        cells = list(cells) + ['drug']
+
+        common_columns = set(auc_values.columns).intersection(cells)
+
+        common_columns = list(common_columns)
+
+        auc_values = auc_values[common_columns]
+        auc_values = auc_values[auc_values['drug'].isin(drugs)]
+
         return auc_values
         
         
@@ -100,6 +126,7 @@ class PharmacoSet:
         mask = self.data.apply(lambda row: (row['cell_line'], row['drug']) in common_pairs_set, axis=1)
         # Filter the DataFrame using the mask
         self.overlapping_data = self.data[mask]
+        self.common_pairs = common_pairs_set 
     
     def get_recomp_auc_values(self, common_concentration, p_filter = 0.05, log_fc = -0.05):
         """
@@ -124,6 +151,7 @@ class PharmacoSet:
         all_drugs = {}
 
         for drug in drug_list:
+            print(f"Recomputing AUCs for {drug} across all cells, {self.name}")
             auc_drug = DrugAnalysis.compute_auc_across_cells(drug= drug, PharmacoSet=self, common_dose_ranges=common_concentration, p_filter= p_filter, log_fc= log_fc)
             if auc_drug == None:
                 continue
@@ -135,7 +163,24 @@ class PharmacoSet:
 
         self.recomp_Aucs = df
         return df
-        
+    
+    
+    
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state['data']
+        del state['overlapping_data']
+        return state
+
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.data = pd.read_csv(self.filepath, sep= "\t")
+        self.data.dropna(subset=['cell_line'], inplace=True)
+        self.data['drug'] = self.data['drug'].apply(self.clean_drug_name)
+        self.data['dataset'] = self.name
+        if self.common_pairs is not None:  # Add this block
+            self.filter_common_pairs(self.common_pairs)
         
 
 
