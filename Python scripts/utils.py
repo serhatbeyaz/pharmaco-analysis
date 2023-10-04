@@ -180,7 +180,7 @@ class Tools:
 
         return params
 
-    def compute_ABC(pSet1, pSet2, drug, cell_line, common_conc):
+    def compute_ABC(pSet1, pSet2, drug, cell_line, common_conc, abs = True):
         common_conc = common_conc[(common_conc["cell_line_"] == cell_line.lower()) & (common_conc["drug_"] == drug)]
         common_min, common_max = common_conc['common_min_dose'].item() * 1e-6, common_conc['common_max_dose'].item() * 1e-6
 
@@ -193,7 +193,10 @@ class Tools:
         f2 = lambda x: Tools.logistic_4PL(x, *curve2_params)
         
         # Calculate absolute difference between the curves and integrate
-        abs_diff_func = lambda x: np.abs(f1(x) - f2(x))
+        if abs:
+            abs_diff_func = lambda x: np.abs(f1(x) - f2(x))
+        else:
+            abs_diff_func = lambda x: f1(x) - f2(x)
         area, error = quad(abs_diff_func, np.log10(common_min), np.log10(common_max))
         
         # Calculate the length of the concentration range
