@@ -217,13 +217,13 @@ class Plotting:
         df_drug = df_drug.sort_values(by='AUC')
         
         # Create the plot
-        plt.figure(figsize=(15, 6))  # Increase the figure size
+        plt.figure(figsize=(15, 6))  
         plt.bar(df_drug['cell_line'], df_drug['AUC'], color='skyblue')
-        plt.xticks(rotation=90, fontsize=8)  # Decrease the font size and rotate the labels
+        plt.xticks(rotation=90, fontsize=8) 
         plt.title(f"Waterfall plot for {drug_name}")
         plt.ylim(0,1)
         plt.ylabel("AUC")
-        plt.tight_layout()  # Adjust the layout so everything fits
+        plt.tight_layout()  
         plt.show()
 
 
@@ -403,8 +403,8 @@ class Plotting:
         ax.axhline(0.2, color='b', linestyle='--')  # horizontal line at y=0.2
         ax.axvline(0.2, color='g', linestyle='--')  # vertical line at x=0.2
 
-        ax.set_xlim([0, 1]) # set the x axis limit
-        ax.set_ylim([0, 1]) # set the y axis limit
+        ax.set_xlim([0, 1]) 
+        ax.set_ylim([0, 1]) 
 
         plt.xlabel(f'{method}_{df1_name.upper()}')
         plt.ylabel(f'{method}_{df2_name.upper()}')

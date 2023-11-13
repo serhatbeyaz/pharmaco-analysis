@@ -70,6 +70,8 @@ class Correlation:
         
         return correlation_coef, size
 
+
+    ## Not sure about if this is a mathematically proper way of doing it..
     @staticmethod
     def calculate_p_value(size_pub, size_recomp, correlation_coef_pub, correlation_coef_recomp):
         """

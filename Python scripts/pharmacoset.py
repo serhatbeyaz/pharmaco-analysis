@@ -69,7 +69,7 @@ class PharmacoSet:
             Curve data for the specified drug.
             If the file is not found, returns an empty DataFrame.
         """
-        path_to_curve = os.path.join("..", f"{self.name}_mapped_nCC", "curves", f"{drug}_curves.txt")
+        path_to_curve = os.path.join("../../data/", f"{self.name}_mapped_nCC", "curves", f"{drug}_curves.txt")
         try:
             curve_data = pd.read_csv(path_to_curve, sep= "\t")
             return curve_data
@@ -87,7 +87,7 @@ class PharmacoSet:
         pd.DataFrame
             Published AUC values for the PharmacoSet.
         """
-        path_to_file = os.path.join("..", "Auc_values_published", f"AUC_values_{self.name}_published.csv")
+        path_to_file = os.path.join("../../data/", "Auc_values_published", f"AUC_values_{self.name}_published.csv")
         auc_values = pd.read_csv(path_to_file)
 
         # Filter based on overlapping obs on recompututed
@@ -151,7 +151,7 @@ class PharmacoSet:
         all_drugs = {}
 
         for drug in drug_list:
-            print(f"Recomputing AUCs for {drug} across all cells, {self.name}")
+            print(f"Recomputing AUCs for {drug} across all cell lines, {self.name}")
             auc_drug = DrugAnalysis.compute_auc_across_cells(drug= drug, PharmacoSet=self, common_dose_ranges=common_concentration, p_filter= p_filter, log_fc= log_fc)
             if auc_drug == None:
                 continue

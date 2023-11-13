@@ -201,7 +201,7 @@ class Tools:
         
         # Calculate the length of the concentration range
         concentration_range = np.log10(common_max) - np.log10(common_min)
-        
+
         # Normalize the area
         normalized_area = area / concentration_range
         
